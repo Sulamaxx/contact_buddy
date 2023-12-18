@@ -1,5 +1,7 @@
 import { Button, TextInput, View } from "react-native";
 
+const db = SQLite.openDatabase('contacts.db');
+
 const AddContact = () => {
 
     const [firstName, setFirstName] = useState('');
@@ -7,6 +9,12 @@ const AddContact = () => {
     const [mobile1, setMobile1] = useState('');
     const [mobile2, setMobile2] = useState('');
     const [email, setEmail] = useState('');
+
+    useEffect(() => {
+        createTable();
+        loadContacts();
+      }, []);
+    
 
     return (
         <View style={styles.inputContainer}>
