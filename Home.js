@@ -1,17 +1,28 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, TextInput, Button, FlatList } from 'react-native';
-import * as SQLite  from 'expo-sqlite';
+import { StyleSheet, Text, View, TextInput, Button, FlatList, Image, Alert, Pressable, SafeAreaView } from 'react-native';
+import * as SQLite from 'expo-sqlite';
+import { StatusBar } from 'expo-status-bar';
 
 const db = SQLite.openDatabase('contacts.db');
 
-export default function Home() {
+export default function Home({ navigation }) {
+
   const [contacts, setContacts] = useState([]);
-  
+
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [mobile1, setMobile1] = useState('');
+  const [mobile2, setMobile2] = useState('');
+  const [email, setEmail] = useState('');
+  const [status, setStatus] = useState(false);
 
   useEffect(() => {
     createTable();
-    loadContacts();
-  }, []);
+    const unsubscribe = navigation.addListener('focus', () => {
+      loadContacts();
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const createTable = () => {
     db.transaction(
@@ -41,28 +52,9 @@ export default function Home() {
     );
   };
 
-  const addContact = () => {
-    if (firstName && lastName && mobile1) {
-      db.transaction(
-        (tx) => {
-          tx.executeSql(
-            'INSERT INTO contacts (firstName, lastName, mobile1, mobile2, email) VALUES (?, ?, ?, ?, ?)',
-            [firstName, lastName, mobile1, mobile2, email],
-            () => {
-              loadContacts();
-              setFirstName('');
-              setLastName('');
-              setMobile1('');
-              setMobile2('');
-              setEmail('');
-            },
-            (error) => console.error('Error adding contact: ', error)
-          );
-        },
-        (error) => console.error('Transaction error: ', error)
-      );
-    }
-  };
+  const UpdateContact = (id) => {
+    navigation.navigate('UpdateContact', { c_id: id })
+  }
 
   const deleteContact = (id) => {
     db.transaction(
@@ -80,41 +72,62 @@ export default function Home() {
 
   const renderItem = ({ item }) => (
     <View style={styles.contactItem}>
-      <View>
-        <Text>{`${item.firstName} ${item.lastName}`}</Text>
-        <Text>{`Mobile 1: ${item.mobile1}`}</Text>
-        <Text>{`Mobile 2: ${item.mobile2}`}</Text>
-        <Text>{`Email: ${item.email}`}</Text>
+      <View style={{ width: '20%', height: 78, justifyContent: 'center', alignContent: 'center' }}>
+        <Image source={require('./user.png')} style={{ width: '100%', height: '100%' }} />
       </View>
-      <Button title="Delete" onPress={() => deleteContact(item.id)} />
+      <View style={{ width: '60%', paddingStart: 20, }}>
+        <Text style={{ fontSize: 18, fontWeight: 'bold' }}>{`${item.firstName} ${item.lastName}`}</Text>
+        <Text style={{ fontSize: 16 }}>{`Mobile 1: ${item.mobile1}`}</Text>
+        <Text style={{ fontSize: 16 }}>{`Mobile 2: ${item.mobile2}`}</Text>
+        <Text style={{ fontSize: 16 }}>{`Email: ${item.email}`}</Text>
+      </View>
+      <View style={{ width: '20%', gap: 10 }}>
+        <Button color={'red'} title="Delete" onPress={() => deleteContact(item.id)} />
+        <Button title="Update" onPress={() => UpdateContact(item.id)} />
+      </View>
     </View>
   );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Contact App</Text>
+    <SafeAreaView style={styles.container}>
+      <StatusBar hidden={true} />
+      <Text style={styles.title}>Contact Buddy</Text>
       <FlatList
         data={contacts}
         renderItem={renderItem}
         keyExtractor={(item) => item.id.toString()}
         ListEmptyComponent={<Text>No contacts available</Text>}
       />
-      
-    </View>
+      <View style={{ height: 60, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1B4242', width: '100%' }}>
+        <Pressable onPress={() => {
+          setStatus(true);
+          navigation.navigate('AddContact');
+        }}>
+          <Image source={require('./add_new_user.png')} />
+        </Pressable>
+      </View>
+
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#F6ECA9',
     alignItems: 'center',
     justifyContent: 'center',
   },
   title: {
-    fontSize: 20,
+    width: '100%',
+    fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
+    color: 'white',
+    backgroundColor: '#1B4242',
+    textAlign: 'center',
+    padding: 10,
+    height: 60,
   },
   inputContainer: {
     marginBottom: 20,
@@ -128,7 +141,7 @@ const styles = StyleSheet.create({
   },
   contactItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
     alignItems: 'center',
     padding: 10,
     borderBottomWidth: 1,

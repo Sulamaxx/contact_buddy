@@ -3,7 +3,9 @@ import * as SQLite from 'expo-sqlite';
 import { useEffect, useState } from "react";
 const db = SQLite.openDatabase('contacts.db');
 
-const AddContact = ({ navigation }) => {
+const UpdateContact = ({ navigation, route }) => {
+
+    const { c_id } = route.params;
 
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
@@ -13,6 +15,8 @@ const AddContact = ({ navigation }) => {
 
     useEffect(() => {
         createTable();
+        console.log('Contact ID:', c_id);
+        loadContactData();
     }, []);
 
     const createTable = () => {
@@ -24,29 +28,54 @@ const AddContact = ({ navigation }) => {
                     () => console.log('Table created successfully'),
                     (error) => console.error('Error creating table: ', error)
                 );
+
+
+                tx.executeSql(
+                    'SELECT name FROM sqlite_master WHERE type="table" AND name="contacts"',
+                    [],
+                    (_, { rows }) => console.log('Table exists:', rows.length > 0),
+                    (error) => console.error('Error checking table existence: ', error)
+                );
+
             },
             (error) => console.error('Transaction error: ', error)
         );
     };
 
 
-    const addContact = () => {
+    const loadContactData = () => {
+        db.transaction(
+            (tx) => {
+                tx.executeSql(
+                    'SELECT * FROM contacts WHERE id = ?',
+                    [c_id],
+                    (_, { rows }) => {
+                        const contact = rows.item(0);
+                        setFirstName(contact.firstName);
+                        setLastName(contact.lastName);
+                        setMobile1(contact.mobile1);
+                        setMobile2(contact.mobile2);
+                        setEmail(contact.email);
+                    },
+                    (error) => console.error('Error loading contact data: ', error) // Log the error details
+                );
+            },
+            (error) => console.error('Transaction error: ', error)
+        );
+    };
+
+
+    const updateContact = () => {
         if (firstName && lastName && mobile1) {
             db.transaction(
                 (tx) => {
                     tx.executeSql(
-                        'INSERT INTO contacts (firstName, lastName, mobile1, mobile2, email) VALUES (?, ?, ?, ?, ?)',
-                        [firstName, lastName, mobile1, mobile2, email],
+                        'UPDATE contacts SET firstName = ?, lastName = ?, mobile1 = ?, mobile2 = ?, email = ? WHERE id = ?',
+                        [firstName, lastName, mobile1, mobile2, email, c_id],
                         () => {
-
-                            setFirstName('');
-                            setLastName('');
-                            setMobile1('');
-                            setMobile2('');
-                            setEmail('');
-                            navigation.navigate("Home");
+                            navigation.navigate('Home');
                         },
-                        (error) => console.error('Error adding contact: ', error)
+                        (error) => console.error('Error updating contact: ', error)
                     );
                 },
                 (error) => console.error('Transaction error: ', error)
@@ -60,7 +89,7 @@ const AddContact = ({ navigation }) => {
                 <Image source={require('./arrowblue.png')} style={styles.img1} />
             </Pressable>
             <Image source={require('./add_contact.png')} style={styles.img} />
-            <Text style={styles.title}>Add Contact</Text>
+            <Text style={styles.title}>Update Contact</Text>
             <View style={styles.inputContainer}>
                 <TextInput
                     style={styles.input}
@@ -92,15 +121,15 @@ const AddContact = ({ navigation }) => {
                     value={email}
                     onChangeText={(text) => setEmail(text)}
                 />
-                <Pressable style={styles.btn} onPress={addContact} >
-                    <Text style={styles.txt}>Add Contact</Text>
+                <Pressable style={styles.btn} onPress={updateContact} >
+                    <Text style={styles.txt}>Update Contact</Text>
                 </Pressable>
             </View>
         </SafeAreaView>
     )
 }
 
-export default AddContact;
+export default UpdateContact;
 
 
 
